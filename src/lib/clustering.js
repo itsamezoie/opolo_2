@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// HorizonFit Student Archetype Classifier
+// opolo Student Archetype Classifier
 //
 // Uses nearest-centroid assignment (same principle as K-Means inference) to
 // classify a student's preference weight vector into one of four archetypes.

@@ -29,8 +29,8 @@ export default function AppLayout() {
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-slate-800 ${collapsed ? 'justify-center' : ''}`}>
         <Globe className="w-5 h-5 text-violet-400 flex-shrink-0" />
         {!collapsed && (
-          <span className="font-bold text-lg leading-none">
-            <span className="text-gradient">Horizon</span><span className="text-slate-300">Fit</span>
+          <span className="font-bold text-xl leading-none tracking-tight">
+            <span className="text-gradient">op</span><span className="text-slate-300">olo</span>
           </span>
         )}
       </div>
@@ -124,7 +124,7 @@ export default function AppLayout() {
             <Menu className="w-5 h-5" />
           </button>
           <span className="font-bold text-lg">
-            <span className="text-gradient">Horizon</span><span className="text-slate-300">Fit</span>
+            <span className="text-gradient">op</span><span className="text-slate-300">olo</span>
           </span>
           {isProfileComplete() && (
             <div className="ml-auto flex items-center gap-1.5 text-xs text-slate-500">

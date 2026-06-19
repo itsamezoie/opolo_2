@@ -1,31 +1,39 @@
-import { useState, useMemo } from 'react'
-import { ChevronDown, ChevronUp, ExternalLink, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { ChevronDown, ChevronUp, ExternalLink, AlertTriangle, CheckCircle2, Info, Zap } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { VISA_PROGRAMS } from '../data/visaPredictorData.js'
 
 const CITY_FLAGS  = { boston: '🇺🇸', paris: '🇫🇷', netherlands: '🇳🇱' }
 const CITY_LABELS = { boston: 'Boston, USA', paris: 'Paris, France', netherlands: 'Netherlands' }
 
-// SVG Radial Gauge
-function RadialGauge({ score, label, color }) {
-  const SIZE     = 180
-  const STROKE   = 16
-  const R        = (SIZE / 2) - STROKE
-  const CIRCUM   = 2 * Math.PI * R
-  // gauge is a 240° arc starting at 150° (bottom-left), ending at 390° (bottom-right)
-  const ARC_DEG  = 240
-  const dashArray = (ARC_DEG / 360) * CIRCUM
-  const dashOffset = dashArray - (score / 100) * dashArray
+// ── Qualitative label from score (0–100) — NO numeric display ────────────────
+function getQualitativeLabel(score) {
+  if (score >= 88) return { label: 'Exceptional Fit',       color: '#34d399', textColor: 'text-emerald-400' }
+  if (score >= 78) return { label: 'Well Prepared',         color: '#2dd4bf', textColor: 'text-teal-400'    }
+  if (score >= 68) return { label: 'Strong Candidate',      color: '#60a5fa', textColor: 'text-blue-400'    }
+  if (score >= 58) return { label: 'Favorable Outlook',     color: '#a78bfa', textColor: 'text-violet-400'  }
+  if (score >= 45) return { label: 'Moderate Potential',    color: '#fbbf24', textColor: 'text-amber-400'   }
+  if (score >= 30) return { label: 'Needs Strengthening',   color: '#fb923c', textColor: 'text-orange-400'  }
+  return                  { label: 'Significant Challenges', color: '#f87171', textColor: 'text-red-400'    }
+}
 
-  // Colours per score band
-  const gaugeColor =
-    score >= 85 ? '#34d399'   // emerald
-    : score >= 65 ? '#2dd4bf' // teal
-    : score >= 45 ? '#f59e0b' // amber
-    : '#f87171'               // red
+// ── SVG Radial Gauge — shows qualitative label, no numbers ───────────────────
+function RadialGauge({ score, hasAnswers }) {
+  const SIZE    = 190
+  const STROKE  = 18
+  const R       = (SIZE / 2) - STROKE
+  const CIRCUM  = 2 * Math.PI * R
+  const ARC_DEG = 240
+  const dashArray  = (ARC_DEG / 360) * CIRCUM
+  const dashOffset = hasAnswers ? dashArray - (score / 100) * dashArray : dashArray
+  const rotation   = 150
+  const { label, color } = getQualitativeLabel(score)
 
-  // Rotation so the arc starts at 150° (bottom-left sweep upward)
-  const rotation = 150
+  // Split label into two lines if needed
+  const words   = label.split(' ')
+  const line1   = words.slice(0, Math.ceil(words.length / 2)).join(' ')
+  const line2   = words.slice(Math.ceil(words.length / 2)).join(' ')
+  const singleLine = words.length <= 2
 
   return (
     <div className="flex flex-col items-center">
@@ -35,42 +43,55 @@ function RadialGauge({ score, label, color }) {
           cx={SIZE / 2} cy={SIZE / 2} r={R}
           fill="none" stroke="rgb(30,41,59)" strokeWidth={STROKE}
           strokeDasharray={`${dashArray} ${CIRCUM}`}
-          strokeDashoffset={0}
           strokeLinecap="round"
           transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
         />
         {/* Fill */}
         <circle
           cx={SIZE / 2} cy={SIZE / 2} r={R}
-          fill="none" stroke={gaugeColor} strokeWidth={STROKE}
+          fill="none" stroke={hasAnswers ? color : 'rgb(51,65,85)'} strokeWidth={STROKE}
           strokeDasharray={`${dashArray} ${CIRCUM}`}
           strokeDashoffset={dashOffset}
           strokeLinecap="round"
           transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
-          style={{ transition: 'stroke-dashoffset 1s ease' }}
+          style={{ transition: 'stroke-dashoffset 1s ease, stroke 0.5s ease' }}
         />
-        {/* Score text */}
-        <text
-          x={SIZE / 2} y={SIZE / 2 + 6}
-          textAnchor="middle" dominantBaseline="middle"
-          fontSize="28" fontWeight="700" fill={gaugeColor}
-        >
-          {score}
-        </text>
-        <text
-          x={SIZE / 2} y={SIZE / 2 + 26}
-          textAnchor="middle" fontSize="10" fill="rgb(148,163,184)"
-        >
-          / 100
-        </text>
+        {/* Qualitative label text — NO numbers */}
+        {hasAnswers ? (
+          singleLine ? (
+            <text x={SIZE / 2} y={SIZE / 2 + 5}
+              textAnchor="middle" fontSize="13" fontWeight="700"
+              fill={color} style={{ fontFamily: 'Inter, sans-serif' }}>
+              {label}
+            </text>
+          ) : (
+            <>
+              <text x={SIZE / 2} y={SIZE / 2 - 5}
+                textAnchor="middle" fontSize="12" fontWeight="700"
+                fill={color} style={{ fontFamily: 'Inter, sans-serif' }}>
+                {line1}
+              </text>
+              <text x={SIZE / 2} y={SIZE / 2 + 12}
+                textAnchor="middle" fontSize="12" fontWeight="700"
+                fill={color} style={{ fontFamily: 'Inter, sans-serif' }}>
+                {line2}
+              </text>
+            </>
+          )
+        ) : (
+          <text x={SIZE / 2} y={SIZE / 2 + 5}
+            textAnchor="middle" fontSize="11" fill="rgb(100,116,139)"
+            style={{ fontFamily: 'Inter, sans-serif' }}>
+            answer to score
+          </text>
+        )}
       </svg>
-      <p className={`text-sm font-bold mt-1 ${color}`}>{label}</p>
     </div>
   )
 }
 
-// Individual factor card
-function FactorCard({ factor, value, onChange }) {
+// ── Individual factor assessment card ────────────────────────────────────────
+function FactorCard({ factor, value, onChange, prefilled }) {
   const [open, setOpen] = useState(false)
   const selectedTier = factor.tiers.find(t => t.value === value)
 
@@ -86,9 +107,14 @@ function FactorCard({ factor, value, onChange }) {
             <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
               {factor.weight} pts
             </span>
+            {prefilled && !open && (
+              <span className="text-xs text-teal-400 bg-teal-500/10 border border-teal-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Zap className="w-2.5 h-2.5" /> Auto-filled from profile
+              </span>
+            )}
             {selectedTier && (
-              <span className="text-xs text-violet-300 bg-violet-500/20 px-2 py-0.5 rounded-full border border-violet-500/30">
-                {selectedTier.score}/{factor.weight}
+              <span className="text-xs text-violet-300 bg-violet-500/20 px-2 py-0.5 rounded-full border border-violet-500/30 ml-auto">
+                ✓ Answered
               </span>
             )}
           </div>
@@ -99,7 +125,6 @@ function FactorCard({ factor, value, onChange }) {
 
       {open && (
         <div className="px-4 pb-4 space-y-3 border-t border-slate-800 pt-3 animate-fade-in">
-          {/* Options */}
           <div className="space-y-2">
             {factor.tiers.map(tier => (
               <label
@@ -120,13 +145,12 @@ function FactorCard({ factor, value, onChange }) {
                 />
                 <div>
                   <p className="text-sm text-slate-200">{tier.label}</p>
-                  <p className="text-xs text-slate-500">{tier.score} / {factor.weight} points</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{tier.score} / {factor.weight} points</p>
                 </div>
               </label>
             ))}
           </div>
 
-          {/* Tip */}
           {factor.tip && (
             <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
               <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -139,43 +163,173 @@ function FactorCard({ factor, value, onChange }) {
   )
 }
 
+// ── Budget → financial tier mapping ─────────────────────────────────────────
+function getBudgetTier(budget, visaId) {
+  const map = {
+    boston: { under_1000: 'limited', '1000_1500': 'partial', '1500_2500': 'full_coverage', above_2500: 'full_coverage' },
+    paris:  { under_1000: 'weak',    '1000_1500': 'moderate', '1500_2500': 'strong',       above_2500: 'strong'       },
+    netherlands: { under_1000: 'insufficient', '1000_1500': 'partial', '1500_2500': 'full', above_2500: 'full' },
+  }
+  return map[visaId]?.[budget] || null
+}
+
+// ── Language test → visa language tier mapping ───────────────────────────────
+function getLanguageTier(languageTest, languageScore, visaId) {
+  if (!languageTest || languageTest === 'none') return null
+  const score = languageScore
+
+  if (visaId === 'boston' || visaId === 'netherlands') {
+    // English tiers: high = IELTS ≥7.5 / TOEFL ≥100; medium = 6.5-7.0 / 80-99; low = below
+    if (languageTest === 'ielts') {
+      const n = parseFloat(score)
+      if (isNaN(n)) return null
+      if (n >= 7.5) return 'high'
+      if (n >= 6.5) return 'medium'
+      return 'low'
+    }
+    if (languageTest === 'toefl') {
+      const n = parseInt(score, 10)
+      if (isNaN(n)) return null
+      if (n >= 100) return 'high'
+      if (n >= 80) return 'medium'
+      return 'low'
+    }
+    if (languageTest === 'duolingo') {
+      const n = parseInt(score, 10)
+      if (isNaN(n)) return null
+      if (n >= 130) return 'high'
+      if (n >= 100) return 'medium'
+      return 'low'
+    }
+  }
+  if (visaId === 'paris') {
+    if (languageTest === 'delf' || languageTest === 'tcf') {
+      const lvl = score.toUpperCase()
+      if (lvl === 'C1' || lvl === 'C2') return 'high'
+      if (lvl === 'B2') return 'high' // for English programme: use IELTS mapping below
+      if (lvl === 'B1') return 'medium'
+      return 'low'
+    }
+    if (languageTest === 'ielts') {
+      const n = parseFloat(score)
+      if (isNaN(n)) return null
+      if (n >= 7.0) return 'high'
+      if (n >= 6.5) return 'medium'
+      return 'low'
+    }
+    if (languageTest === 'toefl') {
+      const n = parseInt(score, 10)
+      if (isNaN(n)) return null
+      if (n >= 95) return 'high'
+      if (n >= 80) return 'medium'
+      return 'low'
+    }
+  }
+  return null
+}
+
 export default function VisaPredictor() {
-  const { selectedCityId, setSelectedCityId, visaAnswers, setVisaAnswers } = useApp()
-
+  const { selectedCityId, setSelectedCityId, visaAnswers, setVisaAnswers, profile } = useApp()
   const visaData = VISA_PROGRAMS[selectedCityId]
-
-  // answers: { [cityId]: { [factorId]: { value, score } } }
   const cityAnswers = visaAnswers[selectedCityId] || {}
+  const [prefilled, setPrefilled] = useState({})
+
+  // Auto-populate financial and language factors from profile
+  useEffect(() => {
+    if (!profile?.budget && !profile?.languageTest) return
+
+    const updates = {}
+    const prefilledFactors = {}
+
+    // Financial means factor
+    const fundsFactor = visaData.factors.find(f =>
+      f.id.includes('fund') || f.id.includes('finance') || f.id.includes('means')
+    )
+    if (fundsFactor && profile.budget) {
+      const tier = getBudgetTier(profile.budget, selectedCityId)
+      const match = fundsFactor.tiers.find(t => t.value === tier)
+      if (match && !cityAnswers[fundsFactor.id]) {
+        updates[fundsFactor.id] = { value: match.value, score: match.score }
+        prefilledFactors[fundsFactor.id] = true
+      }
+    }
+
+    // Language factor
+    const langFactor = visaData.factors.find(f =>
+      f.id.includes('lang') || f.id.includes('english') || f.id.includes('french')
+    )
+    if (langFactor && profile.languageTest) {
+      const langTier = getLanguageTier(profile.languageTest, profile.languageScore, selectedCityId)
+      const match = langFactor?.tiers?.find(t => t.value === langTier)
+      if (match && !cityAnswers[langFactor.id]) {
+        updates[langFactor.id] = { value: match.value, score: match.score }
+        prefilledFactors[langFactor.id] = true
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setVisaAnswers(prev => ({
+        ...prev,
+        [selectedCityId]: { ...(prev[selectedCityId] || {}), ...updates },
+      }))
+      setPrefilled(prefilledFactors)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCityId])
 
   const handleAnswer = (factorId, value, score) => {
     setVisaAnswers(prev => ({
       ...prev,
-      [selectedCityId]: {
-        ...(prev[selectedCityId] || {}),
-        [factorId]: { value, score },
-      }
+      [selectedCityId]: { ...(prev[selectedCityId] || {}), [factorId]: { value, score } },
     }))
+    // If manually answered, remove prefill flag
+    setPrefilled(p => { const n = { ...p }; delete n[factorId]; return n })
   }
 
   const totalScore = useMemo(() => {
     return visaData.factors.reduce((sum, f) => {
-      const ans = cityAnswers[f.id]
+      const ans = visaAnswers[selectedCityId]?.[f.id]
       return sum + (ans ? ans.score : 0)
     }, 0)
-  }, [cityAnswers, visaData])
+  }, [visaAnswers, selectedCityId, visaData])
 
-  const answeredCount = visaData.factors.filter(f => cityAnswers[f.id]).length
+  const answeredCount = visaData.factors.filter(f => (visaAnswers[selectedCityId] || {})[f.id]).length
   const allAnswered = answeredCount === visaData.factors.length
+  const hasAny = answeredCount > 0
 
+  const { label: qualLabel, textColor } = getQualitativeLabel(totalScore)
   const scoreBand = visaData.scoreLabels.find(b => totalScore >= b.min)
+
+  // Criminal background warning
+  const hasCriminalFlag = profile?.criminalBackground === 'yes' || profile?.criminalBackground === 'minor'
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-100">Visa Predictor</h1>
-        <p className="text-slate-400 text-sm mt-1">Estimate your visa approval likelihood based on your current situation</p>
+        <p className="text-slate-400 text-sm mt-1">Estimate your visa approval likelihood based on your profile</p>
       </div>
+
+      {/* Profile integration notice */}
+      {(profile?.budget || profile?.languageTest) && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-teal-500/10 border border-teal-500/20">
+          <Zap className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-teal-200/80">
+            Some fields have been <span className="font-semibold">auto-populated from your assessment</span> — budget and language scores flow directly into relevant visa factors. You can still override any answer.
+          </p>
+        </div>
+      )}
+
+      {/* Criminal background alert */}
+      {hasCriminalFlag && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-200/80">
+            Your profile indicates a criminal background history. A police clearance certificate and legal declaration will be required during the application process. This is factored into your eligibility score.
+          </p>
+        </div>
+      )}
 
       {/* Destination selector */}
       <div className="flex flex-wrap gap-2">
@@ -201,7 +355,7 @@ export default function VisaPredictor() {
           <div className="text-3xl">{CITY_FLAGS[selectedCityId]}</div>
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-bold text-slate-100 mb-1">{visaData.label}</h2>
-            <p className="text-xs text-slate-400 mb-2">{visaData.intro}</p>
+            <p className="text-xs text-slate-400 mb-2 leading-relaxed">{visaData.intro}</p>
             <div className="flex flex-wrap gap-3 text-xs text-slate-500">
               <span>⏱ {visaData.processingTime}</span>
               <span>🔄 {visaData.renewalRequired}</span>
@@ -218,7 +372,7 @@ export default function VisaPredictor() {
       </div>
 
       <div className="grid md:grid-cols-5 gap-6">
-        {/* ── Questions ───────────────────────── */}
+        {/* ── Questions ──────────────────────────────── */}
         <div className="md:col-span-3 space-y-3">
           <h3 className="text-sm font-bold text-slate-300">
             Assessment ({answeredCount}/{visaData.factors.length} answered)
@@ -227,24 +381,25 @@ export default function VisaPredictor() {
             <FactorCard
               key={factor.id}
               factor={factor}
-              value={cityAnswers[factor.id]?.value || ''}
+              value={(visaAnswers[selectedCityId] || {})[factor.id]?.value || ''}
               onChange={handleAnswer}
+              prefilled={!!prefilled[factor.id]}
             />
           ))}
         </div>
 
-        {/* ── Score gauge (sticky) ─────────────── */}
+        {/* ── Score panel (sticky) ───────────────────── */}
         <div className="md:col-span-2">
           <div className="sticky top-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center space-y-4">
-            <h3 className="text-sm font-bold text-slate-300">Your Score</h3>
+            <h3 className="text-sm font-bold text-slate-300">Visa Readiness</h3>
 
-            <RadialGauge
-              score={allAnswered ? totalScore : Math.round((answeredCount / visaData.factors.length) * totalScore) || 0}
-              label={scoreBand?.label || '—'}
-              color={scoreBand?.color || 'text-slate-400'}
-            />
+            <RadialGauge score={totalScore} hasAnswers={hasAny} />
 
-            {scoreBand && (
+            {hasAny && (
+              <p className={`text-base font-bold ${textColor}`}>{qualLabel}</p>
+            )}
+
+            {scoreBand && hasAny && (
               <p className="text-xs text-slate-400 leading-relaxed text-left">
                 {scoreBand.desc}
               </p>
@@ -254,39 +409,45 @@ export default function VisaPredictor() {
               <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-200/80">
-                  Answer all {visaData.factors.length} questions for your full score.
+                  {answeredCount === 0
+                    ? 'Answer the questions to see your visa readiness assessment.'
+                    : `${visaData.factors.length - answeredCount} question${visaData.factors.length - answeredCount > 1 ? 's' : ''} remaining for your full assessment.`}
                 </p>
               </div>
             )}
 
-            {allAnswered && totalScore >= 85 && (
+            {allAnswered && totalScore >= 78 && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-left">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-emerald-200/80">
-                  Strong profile! Review the tips inside each factor to maximise your chances.
+                  Strong profile. Review the tips inside each factor to maximise your approval chances.
                 </p>
               </div>
             )}
 
-            {/* Factor breakdown */}
-            <div className="space-y-2 text-left border-t border-slate-800 pt-4">
+            {/* Factor breakdown — qualitative only */}
+            <div className="space-y-2.5 text-left border-t border-slate-800 pt-4">
               <p className="text-xs font-semibold text-slate-400">Factor breakdown</p>
               {visaData.factors.map(f => {
-                const ans = cityAnswers[f.id]
+                const ans = (visaAnswers[selectedCityId] || {})[f.id]
                 const score = ans?.score || 0
                 const pct = Math.round((score / f.weight) * 100)
+                const isStrong = pct >= 80
+                const isWeak = ans && pct < 40
                 return (
                   <div key={f.id}>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400 truncate">{f.label}</span>
-                      <span className={ans ? 'text-slate-300' : 'text-slate-600'}>{ans ? `${score}/${f.weight}` : `—/${f.weight}`}</span>
+                      <span className="text-slate-400 truncate flex-1">{f.label}</span>
+                      <span className={`ml-2 flex-shrink-0 text-[10px] font-medium ${!ans ? 'text-slate-600' : isStrong ? 'text-emerald-400' : isWeak ? 'text-red-400' : 'text-amber-400'}`}>
+                        {!ans ? 'Not answered' : isStrong ? 'Strong' : isWeak ? 'Needs work' : 'Moderate'}
+                      </span>
                     </div>
                     <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${pct}%`,
-                          background: pct >= 80 ? '#34d399' : pct >= 50 ? '#f59e0b' : '#f87171'
+                          background: pct >= 80 ? '#34d399' : pct >= 50 ? '#a78bfa' : pct > 0 ? '#f87171' : 'transparent',
                         }}
                       />
                     </div>
@@ -296,7 +457,7 @@ export default function VisaPredictor() {
             </div>
 
             <p className="text-[10px] text-slate-600 text-left leading-relaxed pt-1">
-              Disclaimer: This is an indicative score only. Visa decisions are at the sole discretion of each country's immigration authority. Always verify requirements with official sources.
+              Indicative assessment only. Visa decisions rest solely with each country's immigration authority. Always verify requirements via official channels.
             </p>
           </div>
         </div>

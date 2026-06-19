@@ -89,7 +89,7 @@ export default function Dashboard() {
             Reassess
           </button>
           <span className="font-bold text-lg ml-auto">
-            <span className="text-gradient">Horizon</span><span className="text-slate-300">Fit</span>
+            <span className="text-gradient">op</span><span className="text-slate-300">olo</span>
           </span>
           {Object.keys(tolerances).length > 0 && (
             <button

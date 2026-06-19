@@ -1,13 +1,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// HorizonFit Matching Engine
+// opolo Matching Engine — Absolute Scoring
 //
 // Algorithm:
 //   1. Weighted score  = Σ (cityDimScore[d] × normalised userWeight[d])
+//      City dimension scores are fixed absolute values (0–100).
+//      The result is a genuine 0–100 score — NOT normalised to produce an
+//      artificial "best match". If no city aligns well, all scores stay low.
 //   2. Tolerance re-weighting: when user reports tolerance for a weak dimension,
 //      that dimension's effective weight is *reduced* (they accept the flaw).
 //      When tolerance is LOW, the weight stays high (it remains a dealbreaker).
-//   3. Cultural fit bonus applied on top of weighted score (religion, alcohol, social style).
-//   4. Tolerance prompts generated wherever a HIGH user priority meets a LOW city score.
+//   3. Cultural fit bonus (+/- points) applied on top of weighted score.
+//   4. Eligibility penalties for criminal background and language score.
+//   5. Tolerance prompts generated wherever a HIGH user priority meets LOW city score.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { CITIES, DIMENSION_META } from '../data/cityData.js'
@@ -50,8 +54,10 @@ export function calculateMatchScores(profile, tolerances = {}) {
     })
 
     const culturalBonus = getCulturalBonus(profile, city)
-    const rawScore = weighted + culturalBonus
-    const score = Math.round(Math.min(98, Math.max(38, rawScore)))
+    const eligibilityPenalty = getEligibilityPenalty(profile, city)
+    const rawScore = weighted + culturalBonus - eligibilityPenalty
+    // Absolute scoring: no artificial floor. A poor match scores low.
+    const score = Math.round(Math.min(100, Math.max(0, rawScore)))
 
     // Top strengths and weaknesses relative to city data
     const strengths = DIMS
@@ -158,6 +164,52 @@ function getCulturalBonus(profile, city) {
   }
 
   return bonus
+}
+
+// ── Eligibility penalty — reduces score for flags that affect visa approval ──
+function getEligibilityPenalty(profile, city) {
+  let penalty = 0
+  const id = city.id
+
+  // Criminal background
+  if (profile.criminalBackground === 'yes') penalty += 18
+  if (profile.criminalBackground === 'minor') penalty += 8
+  if (profile.criminalBackground === 'undisclosed') penalty += 5
+
+  // Language proficiency — penalise where threshold not met
+  if (profile.languageTest && profile.languageScore) {
+    const test = profile.languageTest
+    const score = profile.languageScore
+
+    // IELTS: Paris/NL programmes need ≥6.5, Boston top schools ≥7.0
+    if (test === 'ielts') {
+      const n = parseFloat(score)
+      if (!isNaN(n)) {
+        if (n < 6.0) penalty += 15
+        else if (n < 6.5) penalty += 8
+        else if (n < 7.0 && id === 'boston') penalty += 4
+      }
+    }
+    // TOEFL: Boston needs ≥100, NL/Paris ≥80
+    if (test === 'toefl') {
+      const n = parseInt(score, 10)
+      if (!isNaN(n)) {
+        if (n < 70) penalty += 15
+        else if (n < 80) penalty += 8
+        else if (n < 100 && id === 'boston') penalty += 4
+      }
+    }
+    // DELF/DALF: Paris needs ≥B2
+    if (test === 'delf' && id === 'paris') {
+      const lvl = score.toUpperCase()
+      if (lvl === 'A1' || lvl === 'A2') penalty += 15
+      else if (lvl === 'B1') penalty += 6
+    }
+  }
+  // No test = significant risk if applying to top universities
+  if (profile.languageTest === 'none') penalty += 10
+
+  return penalty
 }
 
 // ── Generate natural-language "why this matches you" explanation ─────────────
@@ -291,17 +343,21 @@ function buildTolerancePrompt(dim, cityName, cityScore) {
 }
 
 function scoreLabel(score) {
-  if (score >= 82) return 'Best match'
-  if (score >= 68) return 'Strong match'
-  if (score >= 55) return 'Good match'
-  return 'Challenging fit'
+  if (score >= 82) return 'Exceptional fit'
+  if (score >= 70) return 'Strong match'
+  if (score >= 57) return 'Good match'
+  if (score >= 43) return 'Moderate fit'
+  if (score >= 28) return 'Weak alignment'
+  return 'Poor fit'
 }
 
 function scoreColor(score) {
   if (score >= 82) return { bg: 'bg-violet-500/20', text: 'text-violet-300', border: 'border-violet-500/40' }
-  if (score >= 68) return { bg: 'bg-teal-500/20',   text: 'text-teal-300',   border: 'border-teal-500/40'   }
-  if (score >= 55) return { bg: 'bg-amber-500/20',  text: 'text-amber-300',  border: 'border-amber-500/40'  }
-  return               { bg: 'bg-slate-500/20',  text: 'text-slate-400',  border: 'border-slate-500/40'  }
+  if (score >= 70) return { bg: 'bg-teal-500/20',   text: 'text-teal-300',   border: 'border-teal-500/40'   }
+  if (score >= 57) return { bg: 'bg-blue-500/20',   text: 'text-blue-300',   border: 'border-blue-500/40'   }
+  if (score >= 43) return { bg: 'bg-amber-500/20',  text: 'text-amber-300',  border: 'border-amber-500/40'  }
+  if (score >= 28) return { bg: 'bg-orange-500/20', text: 'text-orange-300', border: 'border-orange-500/40' }
+  return               { bg: 'bg-red-500/20',    text: 'text-red-400',    border: 'border-red-500/40'    }
 }
 
 /**

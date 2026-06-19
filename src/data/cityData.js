@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// HorizonFit — Core City Dataset
+// opolo — Core City Dataset
 // Sources: Numbeo, SpareRoom, Kamernet, HousingAnywhere, Studapart, Leboncoin,
 //          AmberStudent, Unisova + synthesised student forum / vlog transcripts
 // ─────────────────────────────────────────────────────────────────────────────

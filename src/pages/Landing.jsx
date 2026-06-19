@@ -45,9 +45,9 @@ export default function Landing() {
       {/* ── Nav ─────────────────────────────────────────────── */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="font-bold text-lg tracking-tight">
-            <span className="text-gradient">Horizon</span>
-            <span className="text-slate-300">Fit</span>
+          <span className="font-bold text-xl tracking-tight">
+            <span className="text-gradient">op</span>
+            <span className="text-slate-300">olo</span>
           </span>
           <button
             onClick={() => navigate('/assess')}
@@ -76,14 +76,7 @@ export default function Landing() {
           Boston, Paris, and the Netherlands.
         </p>
 
-        <button
-          onClick={() => navigate('/assess')}
-          className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-xl font-semibold text-white text-lg transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-violet-500/25"
-        >
-          Find my city
-          <ArrowRight className="w-5 h-5" />
-        </button>
-        <p className="mt-4 text-sm text-slate-500">5-minute assessment · no sign-up required</p>
+        <p className="text-sm text-slate-500">5-minute assessment · no sign-up required · personalised results</p>
 
         {/* City preview cards */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -181,7 +174,7 @@ export default function Landing() {
       </section>
 
       <footer className="border-t border-slate-800 py-8 px-6 text-center text-sm text-slate-600">
-        HorizonFit — Data sources: Numbeo, Kamernet, SpareRoom, Studapart, HousingAnywhere, student forums & vlog transcripts
+        opolo — Data sources: Numbeo, Kamernet, SpareRoom, Studapart, HousingAnywhere, student forums & vlog transcripts
       </footer>
     </div>
   )

@@ -81,7 +81,7 @@ function ProfileCard({ peer }) {
           <span>{getLocalTime(peer.timezoneOffset)} local</span>
         </div>
         <a
-          href={`mailto:?subject=Connecting via HorizonFit — ${peer.name}`}
+          href={`mailto:?subject=Connecting via opolo — ${peer.name}`}
           className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors font-medium"
         >
           <MessageCircle className="w-3.5 h-3.5" />
